@@ -7,9 +7,11 @@ using Portalum.Zvt.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace Portalum.Zvt
 {
@@ -391,6 +393,19 @@ namespace Portalum.Zvt
             return commandResponse;
         }
 
+        public async Task<CommandResponse> SelectLanguageAsync(
+           Language language,
+           CancellationToken cancellationToken = default)
+        {
+            this._logger.LogInformation($"{nameof(SelectLanguageAsync)} - Execute");
+
+            var package = new List<byte>();
+            package.Add((byte)language);
+
+            var fullPackage = PackageHelper.Create(new byte[] { 0x08, 0x30 }, package);
+            return await this.SendCommandAsync(fullPackage, cancellationToken: cancellationToken);
+        }
+
         /// <summary>
         /// Registration (06 00)
         /// Using the command Registration the ECR can set up different configurations on the PT and also control the current status of the PT.
@@ -415,7 +430,7 @@ namespace Portalum.Zvt
 
             //Currency Code (CC)
             //ISO4217 (https://en.wikipedia.org/wiki/ISO_4217)
-            var currencyNumericCodeData = NumberHelper.IntToBcd(978, 2); //978 = Euro
+            var currencyNumericCodeData = NumberHelper.IntToBcd((int)this._clientConfig.CurrencyCode, 2); //978 = Euro
             package.AddRange(currencyNumericCodeData);
 
             //Service byte
@@ -428,16 +443,31 @@ namespace Portalum.Zvt
                 //package.Add(0x06); //TLV
                 //package.Add(0x00); //TLV-Length
 
-                //Add TLV Container permit 06D3 (Card complete)
-                package.Add(0x06); //TLV Indicator
-                package.Add(0x06); //TLV Legnth
+                ////Add TLV Container permit 06D3 (Card complete)
+                //package.Add(0x06); //TLV Indicator
+                //package.Add(0x06); //TLV Legnth
+                //package.Add(0x26); //List of permitted ZVT-Commands
+                //package.Add(0x04); //length
+                //package.Add(0x0A); //ZVT-command
+                //package.Add(0x02); //length
+                //package.Add(0x06); //06 first hex of print text block
+                //package.Add(0xD3); //D3 second hex of print text block
 
-                package.Add(0x26); //List of permitted ZVT-Commands
-                package.Add(0x04); //length
-                package.Add(0x0A); //ZVT-command
-                package.Add(0x02); //length
-                package.Add(0x06); //06 first hex of print text block
-                package.Add(0xD3); //D3 second hex of print text block
+                package.AddRange(new byte[] { 0x06, 0x31 });
+                package.AddRange(new byte[] { 0x26, 0x14 });
+                package.AddRange(new byte[] { 0x0A, 0x02, 0x04, 0x0F });
+                package.AddRange(new byte[] { 0x0A, 0x02, 0x06, 0x0F });
+                package.AddRange(new byte[] { 0x0A, 0x02, 0x06, 0x1E });
+                package.AddRange(new byte[] { 0x0A, 0x02, 0x04, 0xFF });
+                package.AddRange(new byte[] { 0x0A, 0x02, 0x06, 0xD3 });
+                package.AddRange(new byte[] { 0x27, 0x02 });
+                package.AddRange(new byte[] { 0x14, 0x01 });
+                package.AddRange(new byte[] { 0x10, 0x02, 0x20, 0x04 });
+                package.AddRange(new byte[] { 0x12, 0x01, 0x40 });
+                package.AddRange(new byte[] { 0x1F, 0x04, 0x01, 0xB0 });
+                package.AddRange(new byte[] { 0x1F, 0x05, 0x01, 0x00 });
+                package.AddRange(new byte[] { 0x40, 0x02, 0xC0, 0x00 });
+                package.AddRange(new byte[] { 0x1A, 0x02, 0x10, 0x00 });
 
                 //TLV TAG
                 //10 - Number of columns and number of lines of the merchant-display
@@ -486,6 +516,110 @@ namespace Portalum.Zvt
 
             var fullPackage = PackageHelper.Create(new byte[] { 0x06, 0x01 }, package);
             return await this.SendCommandAsync(fullPackage, cancellationToken: cancellationToken, asyncCompletion: asyncCompletion);
+        }
+
+        /// <summary>
+        /// Pre-Authorisation / Reservation (06 22)
+        /// Using the command Pre-Authorisation/Reservation the ECR can request the PT to reserve a certain payment-amount for the sales-process.
+        /// </summary>
+        /// <param name="amount"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<CommandResponse> PreAuthorisationAsync(
+            decimal amount,
+            CancellationToken cancellationToken = default)
+        {
+            this._logger.LogInformation($"{nameof(PreAuthorisationAsync)} - Execute");
+
+            var asyncCompletion = false;
+            var package = new List<byte>();
+            package.Add(0x04); //Amount prefix
+            package.AddRange(NumberHelper.DecimalToBcd(amount));
+
+            if (this.CompletionDecisionRequested != null)
+            {
+                package.Add(0x02); // max nr. of status-informations
+                package.Add(this._clientConfig.GetAsyncCompletionInfoLimit);
+                asyncCompletion = true;
+            }
+
+            var fullPackage = PackageHelper.Create(new byte[] { 0x06, 0x22 }, package);
+            return await this.SendCommandAsync(fullPackage, cancellationToken: cancellationToken, asyncCompletion: asyncCompletion);
+        }
+
+        /// <summary>
+        /// Partial-Reversal of a Pre-Authorisation / Booking of a Reservation (06 23)
+        /// This command executes a Partial-Reversal for a Pre-Authorisation to release the unused amount of the reservation.This command is also used for the Booking of a Reservation.
+        /// </summary>
+        /// <param name="receiptNumber">four-digit number</param>
+        /// <param name="amount"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<CommandResponse> PreAuthorisationPartialReversalAsync(
+            int receiptNumber,
+            decimal amount,
+            CancellationToken cancellationToken = default)
+        {
+            this._logger.LogInformation($"{nameof(PreAuthorisationPartialReversalAsync)} - Execute");
+
+            var package = new List<byte>();
+            package.Add(0x87); //ReceiptNumber prefix
+            package.AddRange(NumberHelper.IntToBcd(receiptNumber, 2));
+            package.Add(0x04); //Amount prefix
+            package.AddRange(NumberHelper.DecimalToBcd(amount));
+
+            var fullPackage = PackageHelper.Create(new byte[] { 0x06, 0x23 }, package);
+            return await this.SendCommandAsync(fullPackage, cancellationToken: cancellationToken);
+        }
+
+        /// <summary>
+        /// Book Total (06 24)
+        /// This command executes booking of the total amount for a Pre-Authorisation / Reservation (06 22). The portion of the amount from the Pre-Authorisation / Reservation(06 22) that was used up is booked.
+        /// </summary>
+        /// <param name="receiptNumber">four-digit number</param>
+        /// <param name="amount"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<CommandResponse> PreAuthorisationBookTotalAsync(
+            int receiptNumber,
+            decimal amount,
+            CancellationToken cancellationToken = default)
+        {
+            this._logger.LogInformation($"{nameof(PreAuthorisationBookTotalAsync)} - Execute");
+
+            var package = new List<byte>();
+            package.Add(0x87); //ReceiptNumber prefix
+            package.AddRange(NumberHelper.IntToBcd(receiptNumber, 2));
+            package.Add(0x04); //Amount prefix
+            package.AddRange(NumberHelper.DecimalToBcd(amount));
+
+            var fullPackage = PackageHelper.Create(new byte[] { 0x06, 0x24 }, package);
+            return await this.SendCommandAsync(fullPackage, cancellationToken: cancellationToken);
+        }
+
+        /// <summary>
+        /// Pre-Authorisation Reversal (06 25)
+        /// This command executes a reversal of a Pre-Authorisation in the case of a null-filling.
+        /// </summary>
+        /// <param name="receiptNumber">four-digit number</param>
+        /// <param name="amount"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<CommandResponse> PreAuthorisationReversalAsync(
+            int receiptNumber,
+            decimal amount,
+            CancellationToken cancellationToken = default)
+        {
+            this._logger.LogInformation($"{nameof(PreAuthorisationReversalAsync)} - Execute");
+
+            var package = new List<byte>();
+            package.Add(0x87); //ReceiptNumber prefix
+            package.AddRange(NumberHelper.IntToBcd(receiptNumber, 2));
+            package.Add(0x04); //Amount prefix
+            package.AddRange(NumberHelper.DecimalToBcd(amount));
+
+            var fullPackage = PackageHelper.Create(new byte[] { 0x06, 0x25 }, package);
+            return await this.SendCommandAsync(fullPackage, cancellationToken: cancellationToken);
         }
 
         /// <summary>

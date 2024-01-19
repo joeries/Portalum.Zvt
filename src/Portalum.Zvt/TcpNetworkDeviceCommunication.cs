@@ -2,6 +2,10 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Nager.TcpClient;
 using System;
+//using System.IO;
+//using System.Net.Security;
+//using System.Security.Authentication;
+//using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,6 +20,7 @@ namespace Portalum.Zvt
         private readonly int _port;
         private readonly TcpClient _tcpClient;
         private readonly ILogger<TcpNetworkDeviceCommunication> _logger;
+        private readonly string _rootCACerPath;
 
         /// <inheritdoc />
         public event Action<byte[]> DataReceived;
@@ -37,10 +42,12 @@ namespace Portalum.Zvt
             string ipAddress,
             int port = 20007,
             bool enableKeepAlive = false,
-            ILogger<TcpNetworkDeviceCommunication> logger = default)
+            ILogger<TcpNetworkDeviceCommunication> logger = default,
+            string rootCACertPath = "")
         {
             this._ipAddress = ipAddress;
             this._port = port;
+            this._rootCACerPath = rootCACertPath;
 
             if (logger == null)
             {
@@ -48,6 +55,10 @@ namespace Portalum.Zvt
             }
             this._logger = logger;
 
+            TcpClientConfig tcpClientConfig = new TcpClientConfig
+            {
+                RootCACertPath = this._rootCACerPath
+            };
             if (enableKeepAlive)
             {
                 var keepAliveConfig = new TcpClientKeepAliveConfig
@@ -57,11 +68,11 @@ namespace Portalum.Zvt
                     KeepAliveRetryCount = 1
                 };
 
-                this._tcpClient = new TcpClient(keepAliveConfig: keepAliveConfig);
+                this._tcpClient = new TcpClient(clientConfig: tcpClientConfig, keepAliveConfig: keepAliveConfig);
             }
             else
             {
-                this._tcpClient = new TcpClient();
+                this._tcpClient = new TcpClient(clientConfig: tcpClientConfig);
             }
 
             this.RegisterEvents();
@@ -153,6 +164,16 @@ namespace Portalum.Zvt
             try
             {
                 this._logger.LogInformation($"{nameof(ConnectAsync)} - IpAddress:{this._ipAddress}, Port:{this._port}");
+
+                //X509Certificate2 rootCACertificate = new X509Certificate2(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ""));
+                //X509Store store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+                //store.Open(OpenFlags.ReadWrite);
+                //store.Add(rootCACertificate);
+                //store.Close();
+                //rootCACertificate.Dispose();
+
+                //SslStream sslStream = new SslStream(_tcpClient, false, (sender, certificate, chain, errors) => true);
+                //sslStream.AuthenticateAsClient(_ipAddress, new X509CertificateCollection(new X509Certificate[] { rootCACertificate }), SslProtocols.Tls12, true);
 
                 return await this._tcpClient.ConnectAsync(this._ipAddress, this._port, cancellationToken);
             }

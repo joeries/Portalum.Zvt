@@ -7,6 +7,7 @@ using Portalum.Zvt.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -110,7 +111,8 @@ namespace Portalum.Zvt.ControlPanel
                 ipAddress: this._deviceConfiguration.IpAddress,
                 port:this._deviceConfiguration.Port,
                 enableKeepAlive: this._deviceConfiguration.TcpKeepalive,
-                logger: loggerCommunication);
+                logger: loggerCommunication,
+                rootCACertPath: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "feig-test-root-ca.crt"));
 
             this._deviceCommunication.ConnectionStateChanged += this.ConnectionStateChanged;
 
@@ -142,7 +144,9 @@ namespace Portalum.Zvt.ControlPanel
             var zvtClientConfig = new ZvtClientConfig
             {
                 Encoding = this._deviceConfiguration.Encoding,
-                Language = this._deviceConfiguration.Language
+                Language = this._deviceConfiguration.Language,
+                Password = 835322,
+                CurrencyCode = ZvtCurrencyCode.EUR                
             };
 
             this._zvtClient = new ZvtClient(
@@ -178,6 +182,8 @@ namespace Portalum.Zvt.ControlPanel
 
             this._cancellationTokenSource?.Dispose();
             this._cancellationTokenSource = new CancellationTokenSource();
+
+            //await this._zvtClient.SelectLanguageAsync(zvtClientConfig.Language);
 
             return true;
         }

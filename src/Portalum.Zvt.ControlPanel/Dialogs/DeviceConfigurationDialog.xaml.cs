@@ -26,7 +26,7 @@ namespace Portalum.Zvt.ControlPanel.Dialogs
             this.ComboBoxLanguage.SelectedItem = Zvt.Language.English;
 
             this.ComboBoxEncoding.ItemsSource = Enum.GetValues(typeof(ZvtEncoding));
-            this.ComboBoxEncoding.SelectedItem = ZvtEncoding.CodePage437;
+            this.ComboBoxEncoding.SelectedItem = ZvtEncoding.ISO_8859_1;
         }
 
         private void CloseDialog()

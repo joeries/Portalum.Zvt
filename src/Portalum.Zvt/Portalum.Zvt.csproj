@@ -23,8 +23,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Joeries.Nager.TcpClient" Version="1.1.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
-    <PackageReference Include="Nager.TcpClient" Version="1.1.1" />
     <PackageReference Include="System.IO.Ports" Version="7.0.0" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="7.0.0" />
   </ItemGroup>

@@ -13,6 +13,11 @@ namespace Portalum.Zvt
         public int Password { get; set; } = 000000;
 
         /// <summary>
+        /// Currency Code
+        /// </summary>
+        public ZvtCurrencyCode CurrencyCode { get; set; } = ZvtCurrencyCode.EUR;
+
+        /// <summary>
         ///  Lanugage for Translation Repositories
         /// </summary>
         public Language Language { get; set; } = Language.English;
