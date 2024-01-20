@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Authors>Tino Hager</Authors>
-    <Company>Portalum GmbH</Company>
-    <Description>Implementation of the ZVT protocol for easy communication with the payment terminal, communication via tcp/ip</Description>
+    <Authors>Joeries</Authors>
+    <Company></Company>
+    <Description>Implementation of the ZVT protocol for easy communication with the payment terminal, communication via tcp/ip. SSL/TLS supported added.</Description>
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -12,14 +12,22 @@
 
     <PackageIcon>logo.png</PackageIcon>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/Portalum/Portalum.Zvt</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/joeries/Portalum.Zvt</PackageProjectUrl>
     <PackageTags>zvt-protocol zvt zvt-payment payment-terminal payment eftpos</PackageTags>
 
-    <RepositoryUrl>https://github.com/Portalum/Portalum.Zvt</RepositoryUrl>
+    <RepositoryUrl>https://github.com/joeries/Portalum.Zvt</RepositoryUrl>
 
     <TargetFrameworks>netstandard2.0;netstandard2.1;net6</TargetFrameworks>
 
-    <Version>3.3.1</Version>
+    <Version>3.3.2</Version>
+
+    <PackageId>Joeries.$(AssemblyName)</PackageId>
+
+    <Title>Joeries.Portalum.Zvt with SSL/TLS supported</Title>
+
+    <RepositoryType>git</RepositoryType>
+
+    <PackageReleaseNotes>Add SSL/TLS supporting.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
