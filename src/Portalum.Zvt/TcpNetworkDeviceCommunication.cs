@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Nager.TcpClient;
 using System;
+using System.Security.Authentication;
 //using System.IO;
 //using System.Net.Security;
 //using System.Security.Authentication;
@@ -20,7 +21,6 @@ namespace Portalum.Zvt
         private readonly int _port;
         private readonly TcpClient _tcpClient;
         private readonly ILogger<TcpNetworkDeviceCommunication> _logger;
-        private readonly string _rootCACerPath;
 
         /// <inheritdoc />
         public event Action<byte[]> DataReceived;
@@ -43,11 +43,12 @@ namespace Portalum.Zvt
             int port = 20007,
             bool enableKeepAlive = false,
             ILogger<TcpNetworkDeviceCommunication> logger = default,
-            string rootCACertPath = "")
+            string certPath = "",
+            string certPassword = "",
+            SslProtocols sslProtocol = SslProtocols.None)
         {
             this._ipAddress = ipAddress;
             this._port = port;
-            this._rootCACerPath = rootCACertPath;
 
             if (logger == null)
             {
@@ -57,7 +58,9 @@ namespace Portalum.Zvt
 
             TcpClientConfig tcpClientConfig = new TcpClientConfig
             {
-                RootCACertPath = this._rootCACerPath
+                CertPath = certPath,
+                CertPassword = certPassword,
+                SSLProtocol = sslProtocol
             };
             if (enableKeepAlive)
             {

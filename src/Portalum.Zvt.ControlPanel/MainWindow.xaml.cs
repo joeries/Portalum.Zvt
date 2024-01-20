@@ -112,7 +112,9 @@ namespace Portalum.Zvt.ControlPanel
                 port:this._deviceConfiguration.Port,
                 enableKeepAlive: this._deviceConfiguration.TcpKeepalive,
                 logger: loggerCommunication,
-                rootCACertPath: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "feig-test-root-ca.crt"));
+                certPath: "",
+                certPassword: "",
+                sslProtocol: System.Security.Authentication.SslProtocols.None);
 
             this._deviceCommunication.ConnectionStateChanged += this.ConnectionStateChanged;
 
